@@ -161,8 +161,10 @@ def path_finder(connections, start, destination):
                 if alternate < distance[index_2][1]:
                     distance[index_2][1] = alternate
 
-                unvisited.remove(neighbor)
-                print("a")
+                for i in range(0,len(unvisited)):
+                    if unvisited[i] == neighbor:
+                        unvisited.pop(i)
+                        break
 
     number = -1
     for i in range(0,len(distance)):
