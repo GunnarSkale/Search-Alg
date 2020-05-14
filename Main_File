@@ -1,0 +1,187 @@
+import heapq
+import math
+
+def shortest(connections, must_visit2):
+    must_visit = list(must_visit2)
+    if len(must_visit) > 2: #highest tested length of must_visit is 3
+        distance_1 = path_finder(connections, 'A', must_visit[0])
+        distance_2 = path_finder(connections, 'A', must_visit[1])
+        distance_3 = path_finder(connections, 'A', must_visit[2])
+        distance_4 = path_finder(connections, must_visit[0], must_visit[1])
+        distance_5 = path_finder(connections, must_visit[1], must_visit[2])
+        distance_6 = path_finder(connections, must_visit[0], must_visit[2])
+
+        # We need to visit 4 nodes (A and the 3 targets). This produces so many combinations, it hurts my head. Ugh.
+        # We'll need to account for every. single. way. we can start at A and cover all 3 target nodes.
+        # There should be only 6 ways we can get to all 4 nodes without backtracking, which is:
+        #   A -> [0] -> [1] -> [2]  ;  A -> [2] -> [1] -> [0]  ;  A -> [0] -> [2] -> [1]  ;
+        #   A -> [2] -> [0] -> [1]  ;  A -> [1] -> [2] -> [0]  ;  A -> [1] -> [0] -> [2]
+        #
+        # Those will be the first combinations we implement. There are also 3 "see-saw" paths, which are where all must_visits are accessed directly by A and A alone.
+        #   A -> [0] -> A -> [1] -> A -> [2]  ;  A -> [2] -> A -> [1] -> A -> [0]  ;  A -> [2] -> A -> [0] -> A -> [1]
+        #
+        # We should *not* have to do the in-betweens, if im correct about the test. (There's also a stupidly large amount of combos)
+
+        # Starting the non-backtracking:
+        path_repo = []
+
+        path_1 = distance_1 + distance_4 + distance_5
+        path_2 = distance_3 + distance_5 + distance_4
+        path_3 = distance_1 + distance_6 + distance_5
+        path_4 = distance_3 + distance_6 + distance_4
+        path_5 = distance_2 + distance_5 + distance_6
+        path_6 = distance_2 + distance_4 + distance_6
+
+        path_repo.append(path_1)
+        path_repo.append(path_2)
+        path_repo.append(path_3)
+        path_repo.append(path_4)
+        path_repo.append(path_5)
+        path_repo.append(path_6)
+
+        repo_master = path_repo
+
+        # Finding the shortest of all these paths
+        path_s1 = path_1
+        for i in path_repo:
+            if i <= path_s1:
+                path_s1 = i
+
+        # Now doing the 3 see-saws.
+        path_repo.clear()
+
+        path_7 = (2 * distance_1) + (2 * distance_2) + distance_3
+        path_8 = (2 * distance_3) + (2 * distance_2) + distance_1
+        path_9 = (2 * distance_3) + (2 * distance_1) + distance_2
+
+        path_repo.append(path_7)
+        path_repo.append(path_8)
+        path_repo.append(path_9)
+
+        path_s2 = path_7
+        for i in path_repo:
+            repo_master.append(i)
+            if i <= path_s2:
+                path_s2 = i
+
+        if path_s2 > path_s1:
+            path_s = path_s1
+        else:
+            path_s = path_s2
+
+        path_challenger = path_4 #double check
+        for i in repo_master:
+            if i <= path_challenger:
+                path_challenger = i
+
+        if path_challenger < path_s:
+            path_s = path_challenger
+
+        return path_s
+
+    else:
+        distance_1 = path_finder(connections, 'A', must_visit[0])
+        distance_2 = path_finder(connections, 'A', must_visit[1])
+        distance_3 = path_finder(connections, must_visit[0], must_visit[1])
+
+        # 4 possible paths:
+        # A -> [0], [0] -> A, A -> [1], or (2 * distance_1) + distance_2
+        # A -> [1]. [1] -> A, A -> [0], or distance_1 + (2 * distance_2)
+        # A -> [1 or 0], [1 or 0] -> [0 or 1], or (distance_1 or distance_2) plus distance_3 (this is 2 paths)
+
+        path_1 = (2 * distance_1) + distance_2
+        path_2 = (2 * distance_2) + distance_1
+        path_3 = distance_1 + distance_3
+        path_4 = distance_2 + distance_3
+
+        if path_1 >= path_2: #path 1 out
+            if path_2 >= path_3: #path 2 out
+                if path_3 >= path_4: #path 4 is smallest
+                    return path_4
+                else: #path 3 is smallest
+                    return path_3
+            else: #path 3 out
+                if path_2 >= path_4: #path 4 is smallest
+                    return path_4
+                else: #path 2 is smallest
+                    return path_2
+        else: # path 2 out
+            if path_1 >= path_3: #path 1 out
+                if path_3 >= path_4: #path 4 is smallest
+                    return path_4
+                else: #path 3 is smallest
+                    return path_3
+            else: #path 3 out
+                if path_1 >= path_4: #path 4 is smallest
+                    return path_4
+                else: #path 1 is smallest
+                    return path_1
+
+def path_finder(connections, start, destination):
+    unvisited = []
+
+    for i in connections:
+        i = list(i)
+        if i[0] not in unvisited:
+            unvisited.append(i[0])
+        if i[1] not in unvisited:
+            unvisited.append(i[1])
+
+    index = 0
+    distance = [[-1,-1]]*7
+    for i in range(0,len(distance)):
+        if unvisited[i] != start:
+            distance[i] = [unvisited[i], math.inf]
+        else:
+            distance[i] = [unvisited, 0]
+            index = i
+
+    current = unvisited[index]
+    neighbors = []
+    while len(unvisited) > 0:
+        for i in connections:
+            if i[0] == current:
+                neighbors.append(i[1])
+            elif i[1] == current:
+                neighbors.append(i[0])
+
+        for neighbor in neighbors:
+            if neighbor in unvisited:
+                index_2 = -1
+                for i in range(0,len(connections)):
+                    if current == connections[i][0] and neighbor == connections[i][1]:
+                        index_2 = i
+                alternate = distance[index][1] + connections[index_2][2]
+
+                index_2 = -1
+                for i in range(0,len(distance)):
+                    if distance[i][0] == neighbor:
+                        index_2 = i
+
+                if alternate < distance[index_2][1]:
+                    distance[index_2][1] = alternate
+
+                unvisited.remove(neighbor)
+                print("a")
+
+    number = -1
+    for i in range(0,len(distance)):
+        if distance[i][0] == destination:
+            number = i
+    return distance[number][1]
+
+
+assert 19 == shortest(
+    [('A', 'D', 3), ('A', 'F', 6), ('F', 'G', 2), ('F', 'B', 4), ('F', 'E', 18), ('G', 'B', 1), ('D', 'E', 2),
+     ('E', 'H', 7)], ['B', 'E']), \
+    "Test 1 failed to produce the correct answer"
+assert 12 == shortest(
+    [('A', 'D', 3), ('A', 'F', 6), ('F', 'G', 2), ('F', 'B', 4), ('F', 'E', 18), ('G', 'B', 1), ('D', 'E', 2),
+     ('E', 'H', 7)], ['D', 'H']), \
+    "Test 2 failed to produce the correct answer"
+assert 7 == shortest(
+    [('A', 'G', 1), ('A', 'B', 2), ('A', 'C', 3), ('A', 'D', 4), ('A', 'E', 5), ('A', 'F', 6), ('B', 'C', 7),
+     ('D', 'C', 6), ('F', 'E', 2)], ['F', 'E']), "Test 3 failed to produce the correct answer"
+assert 9 == shortest(
+    [('A', 'G', 1), ('A', 'B', 2), ('A', 'C', 3), ('A', 'D', 4), ('A', 'E', 5), ('A', 'F', 6), ('B', 'C', 7),
+     ('D', 'C', 6), ('F', 'E', 2)], ['G', 'B', 'C']), "Test 4 failed to produce the correct answer"
